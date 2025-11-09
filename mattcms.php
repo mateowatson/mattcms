@@ -7,10 +7,6 @@ date_default_timezone_set(TIMEZONE);
 
 function edit_page($fields) {
     $relativePath = ltrim(trim($fields['path']), '/\\');
-    if ($relativePath === '') {
-        throw new InvalidArgumentException('Path cannot be empty.');
-    }
-
     $title = $fields['title'];
     $content = $fields['content'];
 
