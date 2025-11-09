@@ -5,15 +5,6 @@ const TIMEZONE = 'America/Chicago';
 
 date_default_timezone_set(TIMEZONE);
 
-if (isset($_POST['edit_page'])) {
-    $fields = [
-        'path' => $_POST['edit_page_path'],
-        'title' => $_POST['edit_page_title'],
-        'content' => $_POST['edit_page_content'],
-    ];
-    edit_page($fields);
-}
-
 function edit_page($fields) {
     $relativePath = ltrim(trim($fields['path']), '/\\');
     if ($relativePath === '') {
@@ -50,7 +41,7 @@ function edit_page($fields) {
     file_put_contents($directory . '/index.html', $html);
 }
 
-function get_mattcms_header() {
+function get_admin_header() {
     ob_start();
     ?>
     <!DOCTYPE html>
@@ -69,7 +60,7 @@ function get_mattcms_header() {
     return $header;
 }
 
-function get_mattcms_footer() {
+function get_admin_footer() {
     ob_start();
     ?>
     </body>
@@ -79,7 +70,7 @@ function get_mattcms_footer() {
     return $footer;
 }
 
-function get_mattcms_edit_page_form($path = '') {
+function get_admin_edit_page_form($path = '') {
     $relativePath = ltrim(trim($path), '/\\');
     $directory = ROOT_DIR . '/' . $relativePath;
     $htmlFile = $directory . '/index.html';
@@ -100,17 +91,17 @@ function get_mattcms_edit_page_form($path = '') {
 
     ob_start();
     ?>
-    <form action="/mattcms.php?edit_page" method="post">
-        <label for="edit_page_path">Path:</label>
-        <input type="text" name="edit_page_path" id="edit_page_path" value="<?php echo htmlspecialchars($path); ?>">
+    <form action="/mattcms.php?controller=page_update_post" method="post">
+        <label for="page_update_post_path">Path:</label>
+        <input type="text" name="page_update_post_path" id="page_update_post_path" value="<?php echo htmlspecialchars($path); ?>">
 
-        <label for="edit_page_title">Title:</label>
-        <input type="text" name="edit_page_title" id="edit_page_title" value="<?php echo htmlspecialchars($title_contents); ?>">
+        <label for="page_update_post_title">Title:</label>
+        <input type="text" name="page_update_post_title" id="page_update_post_title" value="<?php echo htmlspecialchars($title_contents); ?>">
 
-        <label for="edit_page_content">Content:</label>
-        <textarea name="edit_page_content" id="edit_page_content"><?php echo $content_contents; ?></textarea>
+        <label for="page_update_post_content">Content:</label>
+        <textarea name="page_update_post_content" id="page_update_post_content"><?php echo $content_contents; ?></textarea>
 
-        <button type="submit" name="edit_page">Edit Page</button>
+        <button type="submit" name="page_update_post_submit"><?= !empty($path) ? 'Update Page' : 'Create Page' ?></button>
     </form>
     <?php
     $form = ob_get_clean();
@@ -140,23 +131,26 @@ function get_page_paths() {
     return $paths;
 }
 
-function get_mattcms_homepage() {
+function controller_homepage() {
+    echo get_admin_header();
     ob_start();
     ?>
     <h2>Welcome to MattCMS</h2>
     <p>This is a simple content management system.</p>
     <ul>
 
-        <li><a href="/mattcms.php?page_create">Add new page</a></li>
-        <li><a href="/mattcms.php?page_index">Index of pages</a></li>
-        <li><a href="/mattcms.php?partials_index">Template Partials</a></li>
+        <li><a href="/mattcms.php?controller=page_create_get">Add new page</a></li>
+        <li><a href="/mattcms.php?controller=page_index_get">Index of pages</a></li>
+        <li><a href="/mattcms.php?controller=partials_index_get">Template Partials</a></li>
     </ul>
     <?php
     $homepage = ob_get_clean();
-    return $homepage;
+    echo $homepage;
+    echo get_admin_footer();
 }
 
-function get_mattcms_page_index() {
+function controller_page_index_get() {
+    echo get_admin_header();
     $paths = get_page_paths();
     ob_start();
     ?>
@@ -165,60 +159,85 @@ function get_mattcms_page_index() {
     <ul>
     <?php foreach ($paths as $path): ?>
         <li>
-            <a href="/mattcms.php?page_update=<?php echo htmlspecialchars($path); ?>"><?php echo htmlspecialchars($path); ?></a>
+            <a href="/mattcms.php?controller=page_update_get&path=<?php echo rawurlencode($path); ?>"><?php echo htmlspecialchars($path); ?></a>
         </li>
     <?php endforeach; ?>
     </ul>
     <?php
     $pageIndex = ob_get_clean();
-    return $pageIndex;
+    echo $pageIndex;
+    echo get_admin_footer();
 }
 
-function get_mattcms_partials_index() {
+function controller_blocks_index_get() {
+    echo get_admin_header();
     ob_start();
     ?>
-    <h2>Template Partials Index</h2>
-    <p>List of available template partials will go here.</p>
+    <h2>Blocks</h2>
+    <p>List of available blocks/partials will go here.</p>
     <?php
     $partialsIndex = ob_get_clean();
-    return $partialsIndex;
+    echo $partialsIndex;
+    echo get_admin_footer();
 }
 
-function get_mattcms_page_create() {
+function controller_page_create_get() {
+    echo get_admin_header();
     ob_start();
     ?>
-    <?php echo get_mattcms_edit_page_form(); ?>
+    <?php echo get_admin_edit_page_form(); ?>
     <?php
     $form = ob_get_clean();
-    return $form;
+    echo $form;
+    echo get_admin_footer();
 }
 
-function get_mattcms_page_update($path) {
+function controller_page_update_get() {
+    $path = $_GET['path'] ?? '';
+    echo get_admin_header();
     ob_start();
     ?>
     <h2>Update Page: <?php echo htmlspecialchars($path); ?></h2>
-    <?php echo get_mattcms_edit_page_form($path); ?>
+    <?php if(isset($_GET['success']) && $_GET['success'] == 1): ?>
+        <p class="notice">Page updated successfully.</p>
+    <?php endif; ?>
+    <?php echo get_admin_edit_page_form($path); ?>
     <?php
     $form = ob_get_clean();
-    return $form;
+    echo $form;
+    echo get_admin_footer();
+}
+
+function controller_page_update_post() {
+    if (!isset($_POST['page_update_post_path'], $_POST['page_update_post_title'], $_POST['page_update_post_content'])) {
+        throw new InvalidArgumentException('Missing required form fields.');
+    }
+
+    $fields = [
+        'path' => $_POST['page_update_post_path'],
+        'title' => $_POST['page_update_post_title'],
+        'content' => $_POST['page_update_post_content'],
+    ];
+    edit_page($fields);
+    header("Location: /mattcms.php?controller=page_update_get&path=".rawurlencode($fields['path'])."&success=1");
+    die();
 }
 
 function init() {
-    echo get_mattcms_header();
-    if (isset($_GET['edit_page'])) {
-        echo get_mattcms_edit_page_form();
-    } else if(isset($_GET['page_index'])) {
-        echo get_mattcms_page_index();
-    } else if(isset($_GET['page_create'])) {
-        echo get_mattcms_page_create();
-    } else if(isset($_GET['page_update'])) {
-        echo get_mattcms_page_update($_GET['page_update']);
-    } else if (isset($_GET['partials_index'])) {
-        echo get_mattcms_partials_index();
+    $controller = $_REQUEST['controller'] ?? null;
+    if ($controller === 'page_update_post') {
+        controller_page_update_post();
+    } else if($controller === 'page_update_get') {
+        controller_page_update_get();
+    } else if($controller === 'page_index_get') {
+        controller_page_index_get();
+    } else if($controller === 'page_create_get') {
+        controller_page_create_get();
+    } else if ($controller === 'partials_index_get') {
+        controller_blocks_index_get();
     } else {
-        echo get_mattcms_homepage();
+        controller_homepage();
     }
-    echo get_mattcms_footer();
 }
 
 init();
