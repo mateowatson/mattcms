@@ -41,9 +41,7 @@ function edit_page($fields) {
 
         <h1><!-- MattCMS: Title --><?php echo htmlspecialchars($title); ?><!-- /MattCMS: Title --></h1>
 
-        <!-- MattCMS: Content -->
-        <?php echo $content; ?>
-        <!-- /MattCMS: Content -->
+        <!-- MattCMS: Content --><?php echo $content; ?><!-- /MattCMS: Content -->
     </body>
     </html>
     <?php
