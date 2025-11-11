@@ -25,10 +25,7 @@ function edit_page($fields) {
         <title><?php echo htmlspecialchars($title); ?></title>
     </head>
     <body>
-
-        <h1><!-- MattCMS: Title --><?php echo htmlspecialchars($title); ?><!-- /MattCMS: Title --></h1>
-
-        <!-- MattCMS: Content --><?php echo $content; ?><!-- /MattCMS: Content -->
+        <!-- mattcms:content --><?php echo $content; ?><!-- /mattcms:content -->
     </body>
     </html>
     <?php
@@ -80,8 +77,8 @@ function get_admin_edit_page_form($path = '') {
             // Handle the case where an HTML file already exists
             $file_contents = file_get_contents($htmlFile);
             // Extract existing title and content if needed
-            $title_contents = preg_match('/<!-- MattCMS: Title -->(.*?)<!-- \/MattCMS: Title -->/s', $file_contents, $headerMatches) ? $headerMatches[1] : '';
-            $content_contents = preg_match('/<!-- MattCMS: Content -->(.*?)<!-- \/MattCMS: Content -->/s', $file_contents, $contentMatches) ? $contentMatches[1] : '';
+            $title_contents = preg_match('/<head>.*<title>(.*?)<\/title>.*<\/head>/s', $file_contents, $headerMatches) ? $headerMatches[1] : '';
+            $content_contents = preg_match('/<!-- mattcms:content -->(.*?)<!-- \/mattcms:content -->/s', $file_contents, $contentMatches) ? $contentMatches[1] : '';
         }
     }
 
@@ -92,7 +89,7 @@ function get_admin_edit_page_form($path = '') {
         <input type="text" name="page_update_post_path" id="page_update_post_path" value="<?php echo htmlspecialchars($path); ?>">
 
         <label for="page_update_post_title">Title:</label>
-        <input type="text" name="page_update_post_title" id="page_update_post_title" value="<?php echo htmlspecialchars($title_contents); ?>">
+        <input type="text" name="page_update_post_title" id="page_update_post_title" value="<?php echo $title_contents; ?>">
 
         <label for="page_update_post_content">Content:</label>
         <textarea name="page_update_post_content" id="page_update_post_content"><?php echo $content_contents; ?></textarea>
@@ -113,13 +110,17 @@ function get_page_paths() {
     );
 
     foreach ($iterator as $file) {
+        $relativePath = str_replace(ROOT_DIR . '/', '', $file->getPathname());
+        if($relativePath === 'index.html') {
+            array_unshift($paths, '/');
+            continue;
+        }
         foreach($badlist as $baditem) {
             if (stristr($file->getPathname(), $baditem)) {
                 continue 2;
             }
         }
         if ($file->isDir()) {
-            $relativePath = str_replace(ROOT_DIR . '/', '', $file->getPathname());
             $paths[] = $relativePath;
         }
     }
@@ -155,7 +156,7 @@ function controller_page_index_get() {
     <ul>
     <?php foreach ($paths as $path): ?>
         <li>
-            <a href="/mattcms.php?controller=page_update_get&path=<?php echo rawurlencode($path); ?>"><?php echo htmlspecialchars($path); ?></a>
+            <a href="/mattcms.php?controller=page_update_get&path=<?php echo rawurlencode($path); ?>"><?php echo htmlspecialchars($path); ?></a> &mdash; <a style="font-size: 14px;" target="_blank" href="/<?php echo $path !== '/' ? rawurlencode($path) : ''; ?>">(Visit page)</a>
         </li>
     <?php endforeach; ?>
     </ul>
