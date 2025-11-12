@@ -45,6 +45,54 @@ function get_admin_header() {
         <title>MattCMS</title>
         <!-- Minified version -->
         <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
+
+        <!-- Styles to separate black fields.  -->
+        <style>
+            .blocks-field {
+                border: 1px solid #ccc;
+                padding: 10px;
+                margin-bottom: 10px;
+            }
+        </style>
+
+        <!-- Add JavaScript that will add the ability to add more blocks to the block form, as in a repeater field.  -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const numFields = document.querySelectorAll('.blocks-field').length;
+                const addButton = document.querySelector('button[data-blocks-add-field]');
+                const fieldsContainer = document.querySelector('div.blocks-fields');
+
+                addButton.addEventListener('click', function() {
+                    const newField = document.createElement('div');
+                    newField.classList.add('blocks-field');
+                    let fieldNum = numFields + 1;
+                    newField.innerHTML = `
+                        <label for="label_field${fieldNum}">Field Label:</label>
+                        <input type="text" name="label_field${fieldNum}" id="label_field${fieldNum}">
+                        <label for="field_type${fieldNum}">Field Type:</label>
+                        <select name="field_type${fieldNum}" id="field_type${fieldNum}" onchange="toggleSelectOptions(this)">
+                            <option value="text">Text</option>
+                            <option value="textarea">Textarea</option>
+                            <option value="select">Select</option>
+                        </select>
+                        <div style="display: none;" class="field-select-options-wrapper">
+                            <label for="field_selectoptions${fieldNum}">Field Options (for select type, one per line):</label>
+                            <textarea name="field_selectoptions${fieldNum}" id="field_selectoptions${fieldNum}"></textarea>
+                        </div>
+                    `;
+                    fieldsContainer.appendChild(newField);
+                });
+
+                toggleSelectOptions = function(selectElement) {
+                    const wrapper = selectElement.nextElementSibling;
+                    if (selectElement.value === 'select') {
+                        wrapper.style.display = 'block';
+                    } else {
+                        wrapper.style.display = 'none';
+                    }
+                };
+            });
+        </script>
     </head>
     <body>
     <h1><a href="/mattcms.php">MattCMS</a></h1>
@@ -138,7 +186,7 @@ function controller_homepage() {
 
         <li><a href="/mattcms.php?controller=page_create_get">Add new page</a></li>
         <li><a href="/mattcms.php?controller=page_index_get">Index of pages</a></li>
-        <li><a href="/mattcms.php?controller=partials_index_get">Template Partials</a></li>
+        <li><a href="/mattcms.php?controller=blocks_index_get">Blocks</a></li>
     </ul>
     <?php
     $homepage = ob_get_clean();
@@ -172,9 +220,58 @@ function controller_blocks_index_get() {
     ?>
     <h2>Blocks</h2>
     <p>List of available blocks/partials will go here.</p>
+    <p><a href="/mattcms.php?controller=blocks_create_get">Create block</a></p>
     <?php
     $partialsIndex = ob_get_clean();
     echo $partialsIndex;
+    echo get_admin_footer();
+}
+
+function controller_blocks_create_get() {
+    echo get_admin_header();
+    ob_start();
+    ?>
+    <h2>Create Block</h2>
+    <p>Block creation form will go here.</p>
+    <form action="/mattcms.php?controller=blocks_create_post">
+        <label for="block_name">Block Name:</label>
+        <input type="text" name="block_name" id="block_name">
+
+        <div class="blocks-fields">
+
+            <div class="blocks-field">
+    
+                <label for="label_field1">Field Label:</label>
+                <input type="text" name="label_field1" id="label_field1">
+        
+                <!-- Add a select option for field type.  -->
+                <label for="field_type1">Field Type:</label>
+                <select name="field_type1" id="field_type1" onchange="toggleSelectOptions(this)">
+                    <option value="text">Text</option>
+                    <option value="textarea">Textarea</option>
+                    <option value="select">Select</option>
+                </select>
+
+                <div style="display: none;" class="field-select-options-wrapper">
+                    <!-- Text area field where the user types the options for the select on each line.  -->
+                    <label for="field_selectoptions1">Field Options (for select type, one per line):</label>
+                    <textarea name="field_selectoptions1" id="field_selectoptions1"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div>
+
+            <button type="button" data-blocks-add-field>Add Field</button>
+        </div>
+
+        <div>
+            <button type="submit" name="block_create_submit">Create Block</button>
+        </div>
+    </form>
+    <?php
+    $form = ob_get_clean();
+    echo $form;
     echo get_admin_footer();
 }
 
@@ -230,8 +327,10 @@ function init() {
         controller_page_index_get();
     } else if($controller === 'page_create_get') {
         controller_page_create_get();
-    } else if ($controller === 'partials_index_get') {
+    } else if ($controller === 'blocks_index_get') {
         controller_blocks_index_get();
+    } else if($controller === 'blocks_create_get') {
+        controller_blocks_create_get();
     } else {
         controller_homepage();
     }
