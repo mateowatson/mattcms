@@ -221,10 +221,83 @@ function controller_blocks_index_get() {
     <h2>Blocks</h2>
     <p>List of available blocks/partials will go here.</p>
     <p><a href="/mattcms.php?controller=blocks_create_get">Create block</a></p>
+
+    <!-- Show a list of all the blocks from the mattcms-blocks directory.  -->
+    <?php
+    $blocksDir = ROOT_DIR . '/mattcms-blocks';
+    if (is_dir($blocksDir)) {
+        $blockFiles = glob($blocksDir . '/*.json');
+        foreach ($blockFiles as $blockFile) {
+            $blockData = json_decode(file_get_contents($blockFile), true);
+            ?>
+                <!-- Update this to include only the file name and not the whole path.  -->
+                <li><a href="/mattcms.php?controller=blocks_update_get&block_file=<?= htmlspecialchars(str_replace($blocksDir . '/', '', $blockFile)); ?>"><?php echo htmlspecialchars($blockData['name']); ?></a></li>
+            <?php
+        }
+    }
+    ?>
     <?php
     $partialsIndex = ob_get_clean();
     echo $partialsIndex;
     echo get_admin_footer();
+}
+
+function get_block_create_or_update_form($blockData = null) {
+    ob_start();
+    ?>
+    <form action="/mattcms.php?controller=blocks_create_post" method="post">
+        <label for="block_name">Block Name:</label>
+        <input type="text" name="block_name" id="block_name" required value="<?php echo $blockData ? htmlspecialchars($blockData['name']) : ''; ?>">
+
+        <?php if ($blockData): ?>
+            <?php foreach ($blockData['fields'] as $id => $field): ?>
+                <div class="blocks-field">
+                    <label for="label_field<?php echo $id; ?>">Field Label:</label>
+                    <input type="text" name="label_field<?php echo $id; ?>" id="label_field<?php echo $id; ?>" value="<?php echo htmlspecialchars($field['label']); ?>">
+
+                    <label for="field_type<?php echo $id; ?>">Field Type:</label>
+                    <select name="field_type<?php echo $id; ?>" id="field_type<?php echo $id; ?>" onchange="toggleSelectOptions(this)">
+                        <option value="text" <?= $field['type'] === 'text' ? 'selected' : ''; ?>>Text</option>
+                        <option value="textarea" <?= $field['type'] === 'textarea' ? 'selected' : ''; ?>>Textarea</option>
+                        <option value="select" <?= $field['type'] === 'select' ? 'selected' : ''; ?>>Select</option>
+                    </select>
+
+                    <div style="<?= $field['type'] === 'select' ? '' : 'display: none;' ?>" class="field-select-options-wrapper">
+                        <label for="field_selectoptions<?php echo $id; ?>">Field Options (for select type, one per line):</label>
+                        <textarea name="field_selectoptions<?php echo $id; ?>" id="field_selectoptions<?php echo $id; ?>"><?php echo implode("\n", $field['options']); ?></textarea>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
+
+        <?php if (!$blockData): ?>
+            <div class="blocks-fields">
+                <div class="blocks-field">
+                    <label for="label_field1">Field Label:</label>
+                    <input type="text" name="label_field1" id="label_field1">
+
+                    <label for="field_type1">Field Type:</label>
+                    <select name="field_type1" id="field_type1" onchange="toggleSelectOptions(this)">
+                        <option value="text">Text</option>
+                        <option value="textarea">Textarea</option>
+                        <option value="select">Select</option>
+                    </select>
+
+                    <div style="display: none;" class="field-select-options-wrapper">
+                        <label for="field_selectoptions1">Field Options (for select type, one per line):</label>
+                        <textarea name="field_selectoptions1" id="field_selectoptions1"></textarea>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <button type="button" data-blocks-add-field>Add Field</button>
+
+        <button type="submit" name="blocks_create_post_submit"><?= $blockData ? 'Update Block' : 'Create Block' ?></button>
+    </form>
+    <?php
+    $form = ob_get_clean();
+    return $form;
 }
 
 function controller_blocks_create_get() {
@@ -233,46 +306,66 @@ function controller_blocks_create_get() {
     ?>
     <h2>Create Block</h2>
     <p>Block creation form will go here.</p>
-    <form action="/mattcms.php?controller=blocks_create_post">
-        <label for="block_name">Block Name:</label>
-        <input type="text" name="block_name" id="block_name">
-
-        <div class="blocks-fields">
-
-            <div class="blocks-field">
-    
-                <label for="label_field1">Field Label:</label>
-                <input type="text" name="label_field1" id="label_field1">
-        
-                <!-- Add a select option for field type.  -->
-                <label for="field_type1">Field Type:</label>
-                <select name="field_type1" id="field_type1" onchange="toggleSelectOptions(this)">
-                    <option value="text">Text</option>
-                    <option value="textarea">Textarea</option>
-                    <option value="select">Select</option>
-                </select>
-
-                <div style="display: none;" class="field-select-options-wrapper">
-                    <!-- Text area field where the user types the options for the select on each line.  -->
-                    <label for="field_selectoptions1">Field Options (for select type, one per line):</label>
-                    <textarea name="field_selectoptions1" id="field_selectoptions1"></textarea>
-                </div>
-            </div>
-        </div>
-
-        <div>
-
-            <button type="button" data-blocks-add-field>Add Field</button>
-        </div>
-
-        <div>
-            <button type="submit" name="block_create_submit">Create Block</button>
-        </div>
-    </form>
+    <?= get_block_create_or_update_form(); ?>
     <?php
     $form = ob_get_clean();
     echo $form;
     echo get_admin_footer();
+}
+
+function controller_blocks_update_get() {
+    echo get_admin_header();
+    ob_start();
+    ?>
+    <h2>Update Block</h2>
+    <p>Block update form will go here.</p>
+    <?php
+    // Get the existing block data to pass to the function.
+    $blockFile = ROOT_DIR . '/mattcms-blocks/' . $_GET['block_file'] ?? '';
+    $blockData = json_decode(file_get_contents($blockFile), true);
+    ?>
+    <?= get_block_create_or_update_form($blockData); ?>
+    <?php
+    $form = ob_get_clean();
+    echo $form;
+    echo get_admin_footer();
+}
+
+function controller_blocks_create_post() {
+    // Handle block creation form submission.
+    // Save the data for the block, with all the data for its fields, in a file in a directory called mattcms-blocks.
+    $blockName = $_POST['block_name'] ?? 'unnamed-block';
+    $fields = [];
+    foreach ($_POST as $key => $value) {
+        if (str_starts_with($key, 'label_field')) {
+            $fieldNum = str_replace('label_field', '', $key);
+            $fieldTypeKey = 'field_type' . $fieldNum;
+            $fieldType = $_POST[$fieldTypeKey] ?? 'text';
+            $fieldOptions = [];
+            if ($fieldType === 'select') {
+                $fieldSelectOptionsKey = 'field_selectoptions' . $fieldNum;
+                $optionsRaw = $_POST[$fieldSelectOptionsKey] ?? '';
+                $fieldOptions = array_map('trim', explode("\n", $optionsRaw));
+            }
+            $fields[] = [
+                'label' => $value,
+                'type' => $fieldType,
+                'options' => $fieldOptions,
+            ];
+        }
+    }
+    $blockData = [
+        'name' => $blockName,
+        'fields' => $fields,
+    ];
+    $blocksDir = ROOT_DIR . '/mattcms-blocks';
+    if (!is_dir($blocksDir) && !mkdir($blocksDir, 0755, true) && !is_dir($blocksDir)) {
+        throw new RuntimeException("Unable to create directory: $blocksDir");
+    }
+    $blockFile = $blocksDir . '/' . preg_replace('/[^a-z0-9-_]/i', '-', strtolower($blockName)) . '.json';
+    file_put_contents($blockFile, json_encode($blockData, JSON_PRETTY_PRINT));
+    header("Location: /mattcms.php?controller=blocks_index_get");
+    die();
 }
 
 function controller_page_create_get() {
@@ -331,6 +424,10 @@ function init() {
         controller_blocks_index_get();
     } else if($controller === 'blocks_create_get') {
         controller_blocks_create_get();
+    } else if($controller === 'blocks_update_get') {
+        controller_blocks_update_get();
+    } else if($controller === 'blocks_create_post') {
+        controller_blocks_create_post();
     } else {
         controller_homepage();
     }
