@@ -72,7 +72,7 @@ function get_admin_edit_page_form($path = '') {
     $content_contents = '';
 
     $directory = ROOT_DIR . '/' . $relativePath;
-    if (is_dir($directory)) {
+    if ($path && is_dir($directory)) {
         if (file_exists($htmlFile)) {
             // Handle the case where an HTML file already exists
             $file_contents = file_get_contents($htmlFile);
